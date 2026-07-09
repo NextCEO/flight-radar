@@ -1,0 +1,63 @@
+# .github/workflows/flight-radar.yml
+# 매일 새벽 4시(KST) 네이버항공 가격 수집 → flight-radar/data/fares.json 커밋
+name: Flight Radar
+
+on:
+  schedule:
+    - cron: "0 19 * * *"   # 19:00 UTC = 04:00 KST
+  workflow_dispatch:
+    inputs:
+      rotate:
+        description: "목적지 순환 (1=하루 1곳, 0=전체)"
+        default: "1"
+      dep_step:
+        description: "출발일 간격(일)"
+        default: "2"
+
+concurrency:
+  group: flight-radar
+  cancel-in-progress: false
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install deps
+        run: |
+          pip install -r flight-radar/crawler/requirements.txt
+          python -m playwright install chromium --with-deps
+
+      - name: Crawl
+        env:
+          ROTATE: ${{ github.event.inputs.rotate || '1' }}
+          DEP_STEP: ${{ github.event.inputs.dep_step || '2' }}
+          DEP_START: "2026-10-01"
+          DEP_END: "2026-11-30"
+          STAYS: "7,10,14"
+        run: python flight-radar/crawler/crawl.py
+
+      - name: Upload raw samples (파서 정밀화용)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: raw-responses
+          path: flight-radar/raw/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Commit data
+        run: |
+          git config user.name "flight-radar-bot"
+          git config user.email "actions@github.com"
+          git add flight-radar/data/fares.json
+          git diff --cached --quiet || git commit -m "flight-radar: fares update $(date -u +'%Y-%m-%d')"
+          git push
