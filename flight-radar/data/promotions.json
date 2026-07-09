@@ -1,0 +1,55 @@
+{
+  "updated": "2026-07-09",
+  "note": "실결제가 계산용 프로모션 DB. match=판매처명 매칭 키워드. 요율/한도/만료일 바뀌면 여기만 수정. type=percent|fixed(즉시할인) / earn(적립·정보표시용, 실결제가에는 미반영).",
+  "myCards": ["KB국민카드", "현대카드"],
+  "items": [
+    {
+      "id": "tripcom-kb-air-3",
+      "vendor": "트립닷컴",
+      "match": ["트립닷컴", "Trip.com", "트립"],
+      "card": "KB국민카드",
+      "label": "국민카드 항공 3% (코드 KBTP3)",
+      "code": "KBTP3",
+      "type": "percent",
+      "value": 3,
+      "until": "2026-12-31",
+      "loginRequired": true,
+      "memo": "국민카드 번호 직접결제 필수. 네이버페이 등 간편결제 시 미적용. 유류세·세금 제외 순운임 기준."
+    },
+    {
+      "id": "interpark-kb-air",
+      "vendor": "인터파크투어",
+      "match": ["인터파크"],
+      "card": "KB국민카드",
+      "label": "국민카드 즉시할인 조건가 (링크 확인)",
+      "type": "conditional",
+      "maxDiscount": 100000,
+      "until": "2026-12-31",
+      "loginRequired": true,
+      "memo": "요율 고정 아님. 구매시점 노출 조건가로 결제하는 즉시할인, 회원당 최대 10만원. 실제 할인폭은 링크에서 확인."
+    },
+    {
+      "id": "hyundai-thehyundaitravel-earn",
+      "vendor": "더현대트래블",
+      "match": ["현대트래블", "더현대", "현대드림투어"],
+      "card": "현대카드",
+      "label": "현대카드 M포인트 최대 5% 적립",
+      "type": "earn",
+      "value": 5,
+      "until": "2026-12-31",
+      "loginRequired": true,
+      "memo": "즉시할인 아닌 적립(카드별 0.5~5%). 실결제가에는 미반영, 참고표시만."
+    },
+    {
+      "id": "tripcom-toss-air",
+      "vendor": "트립닷컴",
+      "match": ["트립닷컴", "Trip.com", "트립"],
+      "card": "결제수단",
+      "label": "토스페이 항공 할인 (수시)",
+      "type": "info",
+      "until": "2026-12-31",
+      "loginRequired": false,
+      "memo": "매주 요일별 토스/카카오페이 코드가 수시로 열림. 금액·코드는 그때그때 트립닷컴 프로모션 페이지 확인."
+    }
+  ]
+}

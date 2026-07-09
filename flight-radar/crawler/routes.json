@@ -1,0 +1,15 @@
+{
+  "note": "크롤링 대상 노선. in=출발도착 도시, out=귀국편 도시. roundtrip=왕복(같은도시), open=오픈조.",
+  "origin": "ICN",
+  "routes": [
+    {"id": "FCO-FCO", "in": "FCO", "out": "FCO", "type": "roundtrip", "label": "로마 왕복"},
+    {"id": "MXP-MXP", "in": "MXP", "out": "MXP", "type": "roundtrip", "label": "밀라노 왕복"},
+    {"id": "VCE-VCE", "in": "VCE", "out": "VCE", "type": "roundtrip", "label": "베네치아 왕복"},
+    {"id": "MXP-FCO", "in": "MXP", "out": "FCO", "type": "open", "label": "밀라노 IN → 로마 OUT"},
+    {"id": "FCO-MXP", "in": "FCO", "out": "MXP", "type": "open", "label": "로마 IN → 밀라노 OUT"},
+    {"id": "VCE-FCO", "in": "VCE", "out": "FCO", "type": "open", "label": "베네치아 IN → 로마 OUT"},
+    {"id": "FCO-VCE", "in": "FCO", "out": "VCE", "type": "open", "label": "로마 IN → 베네치아 OUT"},
+    {"id": "MXP-VCE", "in": "MXP", "out": "VCE", "type": "open", "label": "밀라노 IN → 베네치아 OUT"},
+    {"id": "VCE-MXP", "in": "VCE", "out": "MXP", "type": "open", "label": "베네치아 IN → 밀라노 OUT"}
+  ]
+}

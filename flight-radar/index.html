@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FLIGHT RADAR — ICN ⇄ ITALIA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<style>
+:root{
+  --paper:#EDEEE8;        /* fog-green paper */
+  --card:#F6F6F2;
+  --ink:#21281F;          /* green-black */
+  --ink-soft:#5B6355;
+  --line:#C6CABB;
+  --verde:#1D6E4C;        /* cheap */
+  --verde-deep:#0E4A31;
+  --segnale:#C4432B;      /* expensive */
+  --ochre:#B98A2B;
+  --flap:#2A3128;
+  --flap-ink:#EDEFE6;
+  --disp:'Oswald','Pretendard Variable',sans-serif;
+  --body:'Pretendard Variable','Pretendard',sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--paper)}
+body{
+  font-family:var(--body);color:var(--ink);
+  min-height:100vh;padding:0 0 60px;
+}
+::selection{background:var(--verde);color:#fff}
+
+/* ---------------- header : departure-board strip ---------------- */
+header{
+  border-bottom:2px solid var(--ink);
+  padding:26px 40px 0;
+}
+.masthead{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap}
+.masthead h1{
+  font-family:var(--disp);font-weight:600;font-size:34px;letter-spacing:.06em;
+  text-transform:uppercase;
+}
+.masthead .route{
+  font-family:var(--disp);font-weight:400;font-size:20px;letter-spacing:.12em;
+  color:var(--ink-soft);text-transform:uppercase;
+}
+.masthead .badge{
+  font-family:var(--mono);font-size:11px;padding:3px 8px;border:1px solid var(--ink);
+  border-radius:2px;margin-left:auto;align-self:center;
+}
+.badge.sample{background:var(--ochre);color:#fff;border-color:var(--ochre)}
+.badge.live{background:var(--verde);color:#fff;border-color:var(--verde)}
+
+/* board row : IN/OUT open-jaw selectors + stay chips */
+.board{
+  display:flex;align-items:flex-end;gap:34px;flex-wrap:wrap;
+  padding:18px 0 0;
+}
+.odgroup{display:flex;align-items:center;gap:14px}
+.odblock{display:flex;flex-direction:column;gap:5px}
+.odlbl{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink-soft);text-transform:uppercase}
+.odarrow{font-family:var(--disp);font-size:26px;color:var(--segnale);padding:0 2px;transform:translateY(6px)}
+.odtype{font-family:var(--mono);font-size:11px;padding:4px 9px;border:1px solid var(--ink);
+  border-radius:20px;transform:translateY(6px);letter-spacing:.05em}
+.tile{
+  cursor:pointer;border:none;background:var(--flap);color:var(--flap-ink);
+  font-family:var(--disp);text-transform:uppercase;letter-spacing:.08em;
+  padding:10px 18px 8px;border-radius:3px 3px 0 0;position:relative;
+  display:flex;flex-direction:column;gap:2px;min-width:132px;text-align:left;
+  transition:transform .12s ease, background .12s ease;border-bottom:4px solid transparent;
+}
+.tile.mini{min-width:70px;padding:7px 12px 6px}
+.tile.mini .code{font-size:16px}
+.tile.mini .city{font-size:9px;letter-spacing:.14em}
+.tile::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(255,255,255,.14)}
+.tile .code{font-size:22px;font-weight:600;line-height:1}
+.tile .city{font-size:11px;letter-spacing:.22em;color:#B9C2B4}
+.tile[aria-pressed="true"]{background:var(--verde-deep);border-bottom-color:var(--segnale)}
+.tile:hover{transform:translateY(-2px)}
+.tile:focus-visible{outline:3px solid var(--verde);outline-offset:2px}
+
+.stays{display:flex;align-items:flex-end;gap:6px;padding-bottom:6px}
+.stays .lbl{font-family:var(--mono);font-size:11px;color:var(--ink-soft);margin-right:6px;letter-spacing:.05em}
+.chip{
+  cursor:pointer;font-family:var(--mono);font-size:12px;padding:6px 12px;
+  border:1px solid var(--ink);background:transparent;color:var(--ink);border-radius:20px;
+}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.chip:focus-visible{outline:3px solid var(--verde);outline-offset:2px}
+
+/* ---------------- layout ---------------- */
+.wrap{display:grid;grid-template-columns:1fr 360px;gap:36px;padding:30px 40px 0;align-items:start}
+@media (max-width:1100px){.wrap{grid-template-columns:1fr}}
+
+/* ---------------- calendars ---------------- */
+.months{display:grid;grid-template-columns:1fr 1fr;gap:30px}
+@media (max-width:1400px){.months{grid-template-columns:1fr}}
+.month h2{
+  font-family:var(--disp);font-size:17px;font-weight:500;letter-spacing:.18em;
+  text-transform:uppercase;border-bottom:1.5px solid var(--ink);
+  padding-bottom:8px;margin-bottom:10px;display:flex;justify-content:space-between;
+}
+.month h2 .num{font-family:var(--mono);color:var(--ink-soft);font-size:13px;letter-spacing:0}
+.dow, .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dow div{
+  font-family:var(--mono);font-size:10px;color:var(--ink-soft);
+  text-align:center;padding:4px 0 6px;letter-spacing:.1em;
+}
+.dow div:first-child{color:var(--segnale)}
+.cell{
+  position:relative;min-height:64px;border:1px solid var(--line);border-radius:2px;
+  background:var(--card);padding:5px 6px;cursor:default;overflow:hidden;
+  font-family:var(--mono);
+  display:flex;flex-direction:column;justify-content:space-between;
+}
+.cell.empty{border-color:transparent;background:transparent}
+.cell .d{font-size:11px;color:var(--ink-soft)}
+.cell.sun .d{color:var(--segnale)}
+.cell .f{font-size:13px;font-weight:600;letter-spacing:-.02em}
+.cell .f small{font-size:10px;font-weight:400;margin-left:1px}
+.cell.has{cursor:pointer;transition:transform .1s ease, box-shadow .1s ease}
+.cell.has:hover{transform:translateY(-2px);box-shadow:0 3px 0 var(--ink)}
+.cell.has:focus-visible{outline:3px solid var(--verde);outline-offset:1px}
+.cell.selected{outline:2.5px solid var(--ink);outline-offset:0}
+.cell .best{
+  position:absolute;top:4px;right:5px;font-size:8px;letter-spacing:.12em;
+  background:var(--verde);color:#fff;padding:1px 4px;border-radius:2px;font-weight:600;
+}
+.legend{
+  display:flex;align-items:center;gap:10px;margin-top:16px;
+  font-family:var(--mono);font-size:11px;color:var(--ink-soft);
+}
+.legend .bar{width:140px;height:8px;border-radius:4px;
+  background:linear-gradient(90deg,var(--verde),#D8D9CC,var(--segnale))}
+
+/* ---------------- detail panel ---------------- */
+aside{
+  position:sticky;top:20px;border:1.5px solid var(--ink);border-radius:4px;
+  background:var(--card);padding:20px 20px 22px;min-height:320px;
+}
+aside .ph{color:var(--ink-soft);font-size:13px;line-height:1.7;padding-top:8px}
+.dsel{font-family:var(--disp);font-size:20px;font-weight:500;letter-spacing:.05em;
+  border-bottom:1.5px solid var(--ink);padding-bottom:10px;margin-bottom:6px;text-transform:uppercase}
+.dsel .dsub{font-size:12px;color:var(--ink-soft);letter-spacing:.03em}
+.stayblock{border-bottom:1px dashed var(--line);padding:14px 0}
+.stayblock:last-child{border-bottom:none}
+.stayhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.stayhead .n{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+.stayhead .p{font-family:var(--mono);font-size:17px;font-weight:600}
+.vrow{display:grid;grid-template-columns:1fr auto;align-items:baseline;
+  font-size:12.5px;padding:5px 0;gap:2px 8px;border-bottom:1px solid transparent}
+.vrow.top{background:rgba(29,110,76,.07);margin:0 -8px;padding:6px 8px;border-radius:3px}
+.vrow .vn{color:var(--ink)}
+.vrow .vp{font-family:var(--mono);white-space:nowrap;text-align:right;font-weight:600}
+.vrow .promo{display:inline-block;color:var(--verde)}
+.vrow .promo .orig{text-decoration:line-through;color:var(--ink-soft);margin-right:5px;font-weight:400}
+.vrow .ptag{display:block;grid-column:1/-1;font-size:10.5px;color:var(--verde);
+  font-family:var(--mono);text-align:right;margin-top:1px}
+.vrow .note{grid-column:1/-1;font-size:10.5px;color:var(--ink-soft);margin-top:2px;line-height:1.4}
+.vrow .rank{font-size:9px;background:var(--verde);color:#fff;
+  padding:1px 5px;border-radius:2px;margin-left:4px;vertical-align:1px;letter-spacing:.05em}
+.vrow .lock{font-size:9px;border:1px solid var(--ochre);color:var(--ochre);
+  padding:0 4px;border-radius:2px;margin-left:4px;vertical-align:1px}
+.links{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.links a{
+  font-family:var(--mono);font-size:11px;text-decoration:none;color:var(--paper);
+  background:var(--ink);padding:6px 10px;border-radius:2px;letter-spacing:.02em;
+}
+.links a:hover{background:var(--verde-deep)}
+.links a:focus-visible{outline:3px solid var(--verde);outline-offset:2px}
+.codehint{font-family:var(--mono);font-size:10.5px;color:var(--ochre);margin-top:6px;letter-spacing:.02em}
+
+/* ---------------- footer / data loader ---------------- */
+footer{
+  margin:34px 40px 0;padding-top:14px;border-top:1px solid var(--line);
+  display:flex;gap:20px;align-items:center;flex-wrap:wrap;
+  font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);
+}
+footer button{
+  cursor:pointer;font-family:var(--mono);font-size:11.5px;background:transparent;
+  border:1px solid var(--ink-soft);color:var(--ink-soft);padding:5px 10px;border-radius:2px;
+}
+footer button:hover{border-color:var(--ink);color:var(--ink)}
+.err{color:var(--segnale)}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="masthead">
+    <h1>Flight Radar</h1>
+    <span class="route">ICN ⇄ Italia · 왕복 + 오픈조 · OTT–NOV 2026</span>
+    <span class="badge" id="dataBadge">데이터 대기</span>
+  </div>
+  <div class="board">
+    <div class="odgroup">
+      <div class="odblock">
+        <span class="odlbl">IN · 입국</span>
+        <div class="tiles" id="tilesIn" role="group" aria-label="입국 도시">
+          <button class="tile mini" data-city="FCO" aria-pressed="true"><span class="code">FCO</span><span class="city">로마</span></button>
+          <button class="tile mini" data-city="MXP" aria-pressed="false"><span class="code">MXP</span><span class="city">밀라노</span></button>
+          <button class="tile mini" data-city="VCE" aria-pressed="false"><span class="code">VCE</span><span class="city">베네치아</span></button>
+        </div>
+      </div>
+      <span class="odarrow" aria-hidden="true">→</span>
+      <div class="odblock">
+        <span class="odlbl">OUT · 출국</span>
+        <div class="tiles" id="tilesOut" role="group" aria-label="출국 도시">
+          <button class="tile mini" data-city="FCO" aria-pressed="true"><span class="code">FCO</span><span class="city">로마</span></button>
+          <button class="tile mini" data-city="MXP" aria-pressed="false"><span class="code">MXP</span><span class="city">밀라노</span></button>
+          <button class="tile mini" data-city="VCE" aria-pressed="false"><span class="code">VCE</span><span class="city">베네치아</span></button>
+        </div>
+      </div>
+      <span class="odtype" id="odType">왕복</span>
+    </div>
+    <div class="stays" id="stays">
+      <span class="lbl">체류</span>
+      <button class="chip" data-stay="all" aria-pressed="true">전체 7–14일</button>
+      <button class="chip" data-stay="7" aria-pressed="false">7일</button>
+      <button class="chip" data-stay="10" aria-pressed="false">10일</button>
+      <button class="chip" data-stay="14" aria-pressed="false">14일</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section>
+    <div class="months" id="months"></div>
+    <div class="legend">
+      <span>저렴</span><span class="bar" aria-hidden="true"></span><span>비쌈</span>
+      <span style="margin-left:14px">● 출발일 기준 왕복 최저가 · 단위 만원</span>
+    </div>
+  </section>
+
+  <aside id="panel" aria-live="polite">
+    <div class="ph">날짜를 클릭하면 체류일수별 최저가, 판매처 비교,<br>
+    프로모션 적용가와 예매 링크가 여기에 표시됩니다.</div>
+  </aside>
+</div>
+
+<footer>
+  <span id="genInfo">—</span>
+  <span id="promoInfo">—</span>
+  <button id="loadBtn">데이터 파일 직접 불러오기 (fares.json)</button>
+  <input type="file" id="loadInput" accept=".json" hidden>
+  <span id="errBox" class="err"></span>
+</footer>
+
+<script>
+"use strict";
+/* ============================== 상태 ============================== */
+const CITY = { FCO:{ko:"로마", trip:"rom"}, MXP:{ko:"밀라노", trip:"mil"}, VCE:{ko:"베네치아", trip:"vce"} };
+const MONTHS = [ {y:2026,m:10,label:"Ottobre — 10월"}, {y:2026,m:11,label:"Novembre — 11월"} ];
+const DOW = ["일","월","화","수","목","금","토"];
+let DATA = null;             // fares.json
+let PROMOS = [];             // promotions.json items
+let state = { cin:"FCO", cout:"FCO", stay:"all", selected:null };
+const routeId = () => `${state.cin}-${state.cout}`;
+const isOpen  = () => state.cin !== state.cout;
+
+/* ============================== 유틸 ============================== */
+const $ = s => document.querySelector(s);
+const fmtMan = n => (n/10000).toLocaleString("ko-KR",{maximumFractionDigits:1});
+const fmtWon = n => n.toLocaleString("ko-KR") + "원";
+const pad = n => String(n).padStart(2,"0");
+const ymd = iso => iso.replaceAll("-","");
+const yymmdd = iso => iso.slice(2).replaceAll("-","");
+
+/* 히트맵 색: t∈[0,1] verde → paper → segnale */
+function heat(t){
+  const mix=(a,b,u)=>a.map((c,i)=>Math.round(c+(b[i]-c)*u));
+  const V=[29,110,76], P=[216,217,204], S=[196,67,43];
+  const c = t<0.5 ? mix(V,P,t*2) : mix(P,S,(t-0.5)*2);
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+function textOn(t){ return (t<0.18||t>0.86) ? "#F4F5EE" : "var(--ink)"; }
+
+/* ============================== 프로모션 엔진 ==============================
+   한 판매처에 매칭되는 프로모션들을 평가해서:
+   - netFare: 즉시할인(percent/fixed) 적용 후 실결제가 (없으면 원가)
+   - discount: 확정 즉시할인액
+   - hardPromo: 실결제가에 반영된 즉시할인 라벨 (있으면)
+   - notes: 미확정/적립/참고 프로모션 라벨들 (conditional·earn·info)
+   - login: 로그인/특정카드 필요 여부
+============================================================================ */
+function evalPromos(vendorName, fare){
+  const today = new Date().toISOString().slice(0,10);
+  let bestDisc = 0, hardPromo = null, login = false;
+  const notes = [];
+  for(const p of PROMOS){
+    if(p.until && p.until < today) continue;
+    if(!(p.match||[]).some(m => vendorName.includes(m))) continue;
+    if(p.loginRequired) login = true;
+    if(p.type==="percent" || p.type==="fixed"){
+      let disc = 0;
+      if(p.type==="percent"){
+        disc = Math.floor(fare * p.value / 100);
+        if(p.maxDiscount) disc = Math.min(disc, p.maxDiscount);
+      }else{
+        if(p.minSpend && fare < p.minSpend) continue;
+        disc = p.value;
+      }
+      if(disc > bestDisc){ bestDisc = disc; hardPromo = p.label; }
+    }else if(p.type==="conditional"){
+      notes.push({kind:"cond", label:p.label, memo:p.memo});
+    }else if(p.type==="earn"){
+      notes.push({kind:"earn", label:p.label, memo:p.memo});
+    }else if(p.type==="info"){
+      notes.push({kind:"info", label:p.label, memo:p.memo});
+    }
+  }
+  return {
+    netFare: fare - bestDisc,
+    discount: bestDisc,
+    hardPromo,
+    notes,
+    login,
+  };
+}
+
+/* ============================== 데이터 인덱싱 ============================== */
+let IDX = new Map();  // `${route}|${dep}` -> [rows]
+function indexData(){
+  IDX = new Map();
+  for(const r of (DATA?.results||[])){
+    const k = r.route+"|"+r.dep;
+    if(!IDX.has(k)) IDX.set(k,[]);
+    IDX.get(k).push(r);
+  }
+  for(const arr of IDX.values()) arr.sort((a,b)=>a.stay-b.stay);
+}
+function rowsFor(dep){
+  const rows = IDX.get(routeId()+"|"+dep) || [];
+  return state.stay==="all" ? rows : rows.filter(r=>r.stay===+state.stay);
+}
+function minFareFor(dep){
+  const rows = rowsFor(dep);
+  return rows.length ? Math.min(...rows.map(r=>r.minFare)) : null;
+}
+
+/* ============================== 캘린더 렌더 ============================== */
+function render(){
+  const host = $("#months");
+  host.innerHTML = "";
+  // 정규화 범위: 현재 목적지+체류 필터의 min/max
+  const fares = [];
+  for(const {y,m} of MONTHS){
+    const last = new Date(y, m, 0).getDate();
+    for(let d=1; d<=last; d++){
+      const f = minFareFor(`${y}-${pad(m)}-${pad(d)}`);
+      if(f!=null) fares.push(f);
+    }
+  }
+  const lo = Math.min(...fares), hi = Math.max(...fares);
+  const bestSet = new Set([...fares].sort((a,b)=>a-b).slice(0,5));
+
+  for(const {y,m,label} of MONTHS){
+    const sec = document.createElement("div");
+    sec.className = "month";
+    sec.innerHTML = `<h2><span>${label}</span><span class="num">${y}.${pad(m)}</span></h2>
+      <div class="dow">${DOW.map(d=>`<div>${d}</div>`).join("")}</div>`;
+    const grid = document.createElement("div");
+    grid.className = "grid";
+    const first = new Date(y, m-1, 1).getDay();
+    const last = new Date(y, m, 0).getDate();
+    for(let i=0;i<first;i++){
+      const e=document.createElement("div"); e.className="cell empty"; grid.appendChild(e);
+    }
+    for(let d=1; d<=last; d++){
+      const iso = `${y}-${pad(m)}-${pad(d)}`;
+      const cell = document.createElement("div");
+      cell.className = "cell" + (new Date(y,m-1,d).getDay()===0?" sun":"");
+      cell.innerHTML = `<span class="d">${d}</span>`;
+      const f = minFareFor(iso);
+      if(f!=null){
+        const t = hi>lo ? (f-lo)/(hi-lo) : 0.5;
+        cell.classList.add("has");
+        cell.style.background = heat(t);
+        cell.style.color = textOn(t);
+        cell.tabIndex = 0;
+        cell.setAttribute("role","button");
+        cell.setAttribute("aria-label", `${m}월 ${d}일 출발, 왕복 최저 ${fmtWon(f)}`);
+        cell.innerHTML += `<span class="f">${fmtMan(f)}<small>만</small></span>`;
+        if(bestSet.has(f)) cell.innerHTML += `<span class="best">BEST</span>`;
+        if(state.selected===iso) cell.classList.add("selected");
+        const open = ()=>{ state.selected=iso; render(); renderPanel(iso); };
+        cell.addEventListener("click", open);
+        cell.addEventListener("keydown", e=>{ if(e.key==="Enter"||e.key===" "){e.preventDefault();open();} });
+      }
+      grid.appendChild(cell);
+    }
+    sec.appendChild(grid);
+    host.appendChild(sec);
+  }
+}
+
+/* ============================== 상세 패널 ============================== */
+function deepLinks(dep, ret){
+  const ci = state.cin, co = state.cout;
+  const cin = CITY[ci], cout = CITY[co];
+  if(ci === co){
+    // 왕복
+    return [
+      ["네이버항공", `https://flight.naver.com/flights/international/ICN-${ci}-${ymd(dep)}/${ci}-ICN-${ymd(ret)}?adult=1&fareType=Y`],
+      ["트립닷컴", `https://kr.trip.com/flights/showfarefirst?dcity=sel&acity=${cin.trip}&ddate=${dep}&rdate=${ret}&triptype=rt&class=y&quantity=1`],
+      ["스카이스캐너", `https://www.skyscanner.co.kr/transport/flights/icn/${ci.toLowerCase()}/${yymmdd(dep)}/${yymmdd(ret)}/`],
+      ["카약", `https://www.kayak.co.kr/flights/ICN-${ci}/${dep}/${ret}`],
+    ];
+  }
+  // 오픈조(멀티시티): ICN→IN, OUT→ICN 두 구간
+  return [
+    ["네이버항공", `https://flight.naver.com/flights/international/ICN-${ci}-${ymd(dep)}/${co}-ICN-${ymd(ret)}?adult=1&fareType=Y`],
+    ["트립닷컴", `https://kr.trip.com/flights/showfarefirst?flightType=D&dcity=sel&acity=${cin.trip}&ddate=${dep}&dcity1=${cout.trip}&acity1=sel&ddate1=${ret}&triptype=ct&class=y&quantity=1`],
+    ["스카이스캐너", `https://www.skyscanner.co.kr/transport/flights-multi-city?adults=1&flights=icn-${ci.toLowerCase()}-${yymmdd(dep)},${co.toLowerCase()}-icn-${yymmdd(ret)}`],
+    ["카약", `https://www.kayak.co.kr/flights/ICN-${ci}/${dep}/${co}-ICN/${ret}`],
+  ];
+}
+function renderPanel(dep){
+  const rows = rowsFor(dep);
+  const panel = $("#panel");
+  if(!rows.length){ panel.innerHTML = `<div class="ph">이 날짜의 데이터가 없습니다.</div>`; return; }
+  const [y,m,d] = dep.split("-");
+  const routeTxt = isOpen()
+    ? `IN ${CITY[state.cin].ko}(${state.cin}) → OUT ${CITY[state.cout].ko}(${state.cout}) · 오픈조`
+    : `${CITY[state.cin].ko}(${state.cin}) 왕복`;
+  let html = `<div class="dsel">${+m}월 ${+d}일 출발<br><span class="dsub">ICN → ${routeTxt}</span></div>`;
+  for(const r of rows){
+    // 판매처별 프로모션 평가 후 실결제가 오름차순 정렬
+    const vendors = (r.vendors||[]).map(v=>({ ...v, ...evalPromos(v.name, v.fare) }))
+      .sort((a,b)=> a.netFare - b.netFare);
+    const bestNet = vendors.length ? vendors[0].netFare : r.minFare;
+
+    html += `<div class="stayblock">
+      <div class="stayhead">
+        <span class="n">체류 ${r.stay}일 · ${r.dep.slice(5).replace("-","/")} → ${r.ret.slice(5).replace("-","/")} 귀국</span>
+        <span class="p">${fmtWon(bestNet)}${bestNet<r.minFare?' <small style="color:var(--verde);font-weight:600">실결제 최저</small>':''}</span>
+      </div>`;
+
+    if(vendors.length){
+      vendors.slice(0,6).forEach((v,i)=>{
+        const tags = [];
+        if(i===0 && v.discount>0) tags.push('<span class="rank">최저</span>');
+        if(v.login) tags.push('<span class="lock">카드/로그인</span>');
+        // 가격 표기: 즉시할인 있으면 원가 취소선+실결제가, 없으면 원가
+        let price;
+        if(v.discount>0){
+          price = `<span class="promo"><span class="orig">${fmtWon(v.fare)}</span>${fmtWon(v.netFare)}</span>
+                   <span class="ptag">${v.hardPromo} −${fmtWon(v.discount)}</span>`;
+        }else{
+          price = fmtWon(v.fare);
+        }
+        html += `<div class="vrow${i===0?' top':''}">
+          <span class="vn">${v.name} ${tags.join(" ")}</span>
+          <span class="vp">${price}</span>`;
+        // 미확정/적립/참고 프로모션은 회색 메모로
+        for(const n of v.notes){
+          const ic = n.kind==="earn" ? "적립" : n.kind==="cond" ? "조건가" : "참고";
+          html += `<span class="note">[${ic}] ${n.label}</span>`;
+        }
+        html += `</div>`;
+      });
+    }else{
+      html += `<div class="vrow"><span class="vn" style="color:var(--ink-soft)">판매처 상세 없음 (최저가만 수집됨)</span></div>`;
+    }
+    // 활성 프로모션 코드 힌트 (오늘 유효한 것만)
+    const today = new Date().toISOString().slice(0,10);
+    const codes = PROMOS.filter(p=>p.code && (!p.until||p.until>=today)).map(p=>`${p.code}(${p.card||p.vendor})`);
+    html += `<div class="links">${deepLinks(r.dep, r.ret).map(([n,u])=>`<a href="${u}" target="_blank" rel="noopener">${n} ↗</a>`).join("")}</div>`;
+    if(codes.length) html += `<div class="codehint">결제 시 코드: ${codes.join(" · ")}</div>`;
+    html += `</div>`;
+  }
+  panel.innerHTML = html;
+}
+
+/* ============================== 컨트롤 ============================== */
+function pickCity(group, city){
+  if(group==="in") state.cin = city; else state.cout = city;
+  state.selected = null;
+  const box = group==="in" ? "#tilesIn" : "#tilesOut";
+  document.querySelectorAll(box+" .tile").forEach(t=>t.setAttribute("aria-pressed", t.dataset.city===city?"true":"false"));
+  $("#odType").textContent = isOpen() ? "오픈조" : "왕복";
+  $("#odType").style.background = isOpen() ? "var(--segnale)" : "transparent";
+  $("#odType").style.color = isOpen() ? "#fff" : "var(--ink)";
+  $("#odType").style.borderColor = isOpen() ? "var(--segnale)" : "var(--ink)";
+  $("#panel").innerHTML = `<div class="ph">날짜를 클릭하면 상세가 표시됩니다.</div>`;
+  render();
+}
+$("#tilesIn").addEventListener("click", e=>{ const b=e.target.closest(".tile"); if(b) pickCity("in", b.dataset.city); });
+$("#tilesOut").addEventListener("click", e=>{ const b=e.target.closest(".tile"); if(b) pickCity("out", b.dataset.city); });
+$("#stays").addEventListener("click", e=>{
+  const b = e.target.closest(".chip"); if(!b) return;
+  state.stay = b.dataset.stay;
+  document.querySelectorAll(".chip").forEach(c=>c.setAttribute("aria-pressed", c===b ? "true":"false"));
+  render();
+  if(state.selected) renderPanel(state.selected);
+});
+
+/* ============================== 데이터 로드 ============================== */
+function useData(json){
+  DATA = json; indexData(); render();
+  const badge = $("#dataBadge");
+  if(DATA.sample){ badge.textContent="샘플 데이터"; badge.className="badge sample"; }
+  else{ badge.textContent="LIVE"; badge.className="badge live"; }
+  $("#genInfo").textContent = `수집: ${DATA.generated || "?"} · ${DATA.results.length}건`;
+}
+function usePromos(json){
+  PROMOS = json.items || [];
+  $("#promoInfo").textContent = `프로모션 ${PROMOS.length}건 적용 중 (data/promotions.json)`;
+}
+async function boot(){
+  try{
+    const r = await fetch("./data/fares.json"); if(!r.ok) throw 0;
+    useData(await r.json());
+  }catch{
+    $("#errBox").textContent = "fares.json 자동 로드 실패 — 아래 버튼으로 직접 불러오세요 (file:// 로 열면 정상입니다).";
+  }
+  try{
+    const r = await fetch("./data/promotions.json"); if(!r.ok) throw 0;
+    usePromos(await r.json());
+  }catch{ $("#promoInfo").textContent = "프로모션 파일 없음"; }
+}
+$("#loadBtn").addEventListener("click", ()=>$("#loadInput").click());
+$("#loadInput").addEventListener("change", async e=>{
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    const json = JSON.parse(await f.text());
+    if(json.items) usePromos(json); else useData(json);
+    $("#errBox").textContent = "";
+  }catch{ $("#errBox").textContent = "JSON 파싱 실패 — 파일을 확인하세요."; }
+});
+boot();
+</script>
+</body>
+</html>
