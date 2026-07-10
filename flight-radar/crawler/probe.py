@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Flight Radar 진단 프로브 v2 — 검색 버튼 클릭 + 전체 네트워크 기록.
-페이지를 열고, '검색' 버튼을 눌러 실제 가격 조회를 발동시킨 뒤,
-네이버가 호출하는 모든 XHR/fetch 응답 주소를 기록한다.
-가격 데이터가 실제로 어느 API로 오는지 포착하는 것이 목적.
+Flight Radar 진단 프로브 v3 — 광고 노이즈 제거 + 진짜 가격 API만 포착.
+검색 버튼 클릭 후, 모든 JSON 응답을 검사하되:
+  - 광고/배너/트래킹 도메인(veta, gfp, banner, ad 등)은 완전 제외
+  - 가격 후보 숫자가 여러 개(3+) 있고, 항공/공항 코드가 함께 있는 응답만 '진짜'로 판정
 전체 90초 안에 끝난다.
 """
-import json, re, time
+import re
 from datetime import date, timedelta
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -18,12 +18,13 @@ dep = date(2026,10,15); ret = dep + timedelta(days=7)
 url = f"https://flight.naver.com/flights/international/ICN-FCO-{dep:%Y%m%d}/FCO-ICN-{ret:%Y%m%d}?adult=1&fareType=Y"
 print("PROBE URL:", url)
 
-# 가격 후보를 담고 있을 법한 응답만 걸러서 저장
-INTEREST = re.compile(r"(fare|flight|airline|price|international|graphql|api)", re.I)
-records = []          # (status, url) 전체
-payload_hits = []     # 가격 숫자가 들어있던 응답
+# 광고/트래킹/배너 — 완전 제외할 도메인·경로
+BLOCK = re.compile(r"(veta|/gfp/|banner|/ad[s/_]|doubleclick|analytics|log|track|pixel|beacon|wcslog|nlog)", re.I)
+FARE_RE = re.compile(r'(?<!\d)(\d{6,7})(?!\d)')
+CODE_RE = re.compile(r'\b(FCO|ICN|MXP|VCE)\b')          # 공항 코드
+AIRLINE_RE = re.compile(r'\b([A-Z]{2}\d{2,4})\b')       # 항공편명 (KE123 등)
 
-FARE_RE = re.compile(r'(?<!\d)(\d{6,7})(?!\d)')  # 6~7자리 숫자 = 항공권가 후보
+records = []; real_hits = []
 
 with sync_playwright() as p:
     br = p.chromium.launch(headless=True, args=["--disable-blink-features=AutomationControlled","--lang=ko-KR"])
@@ -33,72 +34,59 @@ with sync_playwright() as p:
 
     def on_resp(r):
         u = r.url
-        if not INTEREST.search(u): return
-        records.append((r.status, u[:150]))
-        # JSON 응답이면 가격 숫자가 있는지 확인
+        if BLOCK.search(u): return                       # 광고/트래킹 제외
         try:
             ct = r.headers.get("content-type","")
-            if "json" in ct:
-                body = r.text()
-                fares = [int(x) for x in FARE_RE.findall(body) if 300000 < int(x) < 6000000]
-                if fares:
-                    payload_hits.append((u[:150], sorted(set(fares))[:8], len(body)))
-                    # 원본도 저장 (최대 3개)
-                    if len(payload_hits) <= 3:
-                        safe = re.sub(r'[^a-zA-Z0-9]', '_', u.split("naver.com")[-1])[:60]
-                        (RAW/f"resp_{safe}.json").write_text(body[:1_500_000], encoding="utf-8")
+            if "json" not in ct: return
+            body = r.text()
         except Exception:
-            pass
+            return
+        records.append((r.status, u.split("?")[0][:120]))
+        fares = sorted(set(int(x) for x in FARE_RE.findall(body) if 300000 < int(x) < 6000000))
+        codes = set(CODE_RE.findall(body))
+        airlines = set(AIRLINE_RE.findall(body))
+        # 진짜 가격 API 판정: 가격 후보 3개 이상 + (공항코드 또는 항공편명 존재)
+        if len(fares) >= 3 and (codes or airlines):
+            real_hits.append((u, fares[:10], sorted(codes), sorted(airlines)[:5], len(body)))
+            if len(real_hits) <= 3:
+                safe = re.sub(r'[^a-zA-Z0-9]', '_', u.split("naver.com")[-1])[:50]
+                (RAW/f"real_{safe}.json").write_text(body[:1_500_000], encoding="utf-8")
 
     page.on("response", on_resp)
 
     try:
-        page.goto(url, wait_until="domcontentloaded", timeout=30_000)
-        print(f"[goto] status ok")
+        page.goto(url, wait_until="domcontentloaded", timeout=30_000); print("[goto] ok")
     except Exception as e:
         print(f"[goto] EXCEPTION {type(e).__name__}")
 
-    # 검색 버튼 클릭 시도 (여러 셀렉터 후보)
-    clicked = False
-    for sel in ["button:has-text('검색')", "a:has-text('검색')", "[class*='search'] button", "button[class*='search']"]:
+    clicked=False
+    for sel in ["button:has-text('검색')", "a:has-text('검색')"]:
         try:
-            el = page.query_selector(sel)
-            if el:
-                el.click(timeout=3000); clicked = True
-                print(f"[click] '검색' 버튼 클릭 성공  (selector: {sel})")
-                break
-        except Exception:
-            continue
-    if not clicked:
-        print("[click] 검색 버튼 못 찾음 — 자동 로딩 대기로 진행")
+            el=page.query_selector(sel)
+            if el: el.click(timeout=3000); clicked=True; print(f"[click] 검색 클릭 ({sel})"); break
+        except Exception: continue
+    if not clicked: print("[click] 버튼 못찾음 — 자동대기")
 
-    # 결과가 뜰 때까지 최대 40초 관찰 (가격 응답이 잡히면 조기 종료)
     for i in range(20):
         page.wait_for_timeout(2000)
-        if payload_hits:
-            print(f"[wait] {(i+1)*2}초 만에 가격 응답 포착")
-            break
+        if real_hits: print(f"[wait] {(i+1)*2}초 만에 진짜 가격 API 포착"); break
 
-    print(f"\n[net] 관심 응답 총 {len(records)}건")
-    print(f"[net] 가격 숫자 포함 응답 {len(payload_hits)}건")
-    for u, fares, ln in payload_hits[:6]:
-        print(f"   ★ {u}")
-        print(f"     → 가격후보: {fares}  (len={ln})")
-    # 가격 응답이 없으면, 어떤 주소들을 불렀는지라도 보여줌
-    if not payload_hits:
-        print("[net] (가격 응답 없음) 호출된 주소 상위:")
+    print(f"\n[net] 광고 제외 후 JSON 응답 {len(records)}건")
+    print(f"[net] 진짜 가격 API 판정 {len(real_hits)}건")
+    for u, fares, codes, airlines, ln in real_hits[:6]:
+        print(f"   ★ {u.split('?')[0]}")
+        print(f"     전체주소: {u[:200]}")
+        print(f"     가격: {fares}")
+        print(f"     공항코드: {codes}  항공편: {airlines}  (len={ln})")
+    if not real_hits:
+        print("[net] 진짜 API 못찾음 — JSON 응답 주소 전체:")
         seen=set()
         for s,u in records:
-            base = u.split("?")[0]
-            if base in seen: continue
-            seen.add(base); print(f"   - {s}  {base}")
-            if len(seen)>=15: break
+            if u in seen: continue
+            seen.add(u); print(f"   - {s}  {u}")
 
     try:
-        page.screenshot(path=str(RAW/"probe_screenshot.png"), full_page=False)
-        print("[save] probe_screenshot.png")
-    except Exception as e:
-        print("[save] screenshot fail:", e)
-
+        page.screenshot(path=str(RAW/"probe_screenshot.png")); print("[save] screenshot")
+    except Exception: pass
     br.close()
 print("\nPROBE DONE")
