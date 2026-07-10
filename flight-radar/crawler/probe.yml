@@ -1,0 +1,30 @@
+# .github/workflows/probe.yml
+# 진단 전용 — 네이버가 해외 IP를 받아주는지 1건만 테스트하고 스크린샷 남김
+name: Flight Radar Probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5          # 5분 넘으면 무조건 종료 (2시간 낭비 방지)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: |
+          pip install playwright==1.49.1
+          python -m playwright install chromium --with-deps
+      - name: Probe
+        run: python flight-radar/crawler/probe.py
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: probe-evidence
+          path: flight-radar/crawler/raw/
+          if-no-files-found: warn
+          retention-days: 7
